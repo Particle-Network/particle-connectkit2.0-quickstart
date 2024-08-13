@@ -11,6 +11,7 @@
   "dependencies": {
     "@particle-network/authkit": "^2.0.0-alpha.1",
     "@particle-network/connectkit": "^2.0.0-alpha.1",
+    "ethers": "^6.13.2",
     "next": "14.2.5",
     "pino-pretty": "^11.2.2",
     "react": "^18",

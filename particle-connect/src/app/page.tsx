@@ -7,7 +7,7 @@ import TxNotification from "./components/TxNotification";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Import the utility functions
+// Utility functions
 import { formatBalance, truncateAddress, copyToClipboard } from "./utils/utils";
 
 // Particle imports
@@ -20,33 +20,37 @@ import {
   useWallets,
 } from "@particle-network/connectkit";
 
-// Connectkit uses Viem, so we can use all Viem's features
+// Connectkit uses Viem, so Viem's features can be utilized
 import { formatEther, parseEther } from "viem";
 
+// Import ethers provider for EIP-1193 compatibility
+import { ethers, type Eip1193Provider } from "ethers";
+
 export default function Home() {
+  // Initialize account-related states from Particle's useAccount hook
   const { address, isConnected, isConnecting, isDisconnected, chainId } =
     useAccount();
   const { disconnect, disconnectAsync } = useDisconnect();
   const { getUserInfo } = useParticleAuth();
 
-  // Init public client
+  // Initialize public client for RPC calls using Viem
   const publicClient = usePublicClient();
 
-  // Init wallet
+  // Retrieve the primary wallet from the Particle Wallets
   const [primaryWallet] = useWallets();
 
-  // Set states
-  const [account, setAccount] = useState(null);
-  const [balance, setBalance] = useState<string>(""); // States for fetching and displaying the balance
-  const [userAddress, setUserAddress] = useState<string>("");
-  const [userInfo, setUserInfo] = useState<any>(null); // State to store user info
-  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState<boolean>(false); // Loading state for user info
-  const [userInfoError, setUserInfoError] = useState<string | null>(null); // Error state for user info
-  const [recipientAddress, setRecipientAddress] = useState<string>(""); // states to get the address to send tokens to from the UI
-  const [transactionHash, setTransactionHash] = useState<string | null>(null); // states for the transaction hash
-  const [isSending, setIsSending] = useState<boolean>(false); // state to display 'Sending...' while waiting for a hash
+  // Define state variables
+  const [account, setAccount] = useState(null); // Store account information
+  const [balance, setBalance] = useState<string>(""); // Store user's balance
+  const [userAddress, setUserAddress] = useState<string>(""); // Store user's address
+  const [userInfo, setUserInfo] = useState<any>(null); // Store user's information
+  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState<boolean>(false); // Loading state for fetching user info
+  const [userInfoError, setUserInfoError] = useState<string | null>(null); // Error state for fetching user info
+  const [recipientAddress, setRecipientAddress] = useState<string>(""); // Store recipient's address for transactions
+  const [transactionHash, setTransactionHash] = useState<string | null>(null); // Store transaction hash after sending
+  const [isSending, setIsSending] = useState<boolean>(false); // State for showing sending status
 
-  // Derive connection status
+  // Connection status message based on the account's connection state
   const connectionStatus = isConnecting
     ? "Connecting..."
     : isConnected
@@ -55,15 +59,28 @@ export default function Home() {
     ? "Disconnected"
     : "Unknown";
 
+  // Load account details and fetch balance when address or chainId changes
   useEffect(() => {
-    // Fetch user info and store it in state
+    async function loadAccount() {
+      if (address) {
+        setAccount(account);
+        setUserAddress(address);
+        await fetchBalance();
+      }
+    }
+    loadAccount();
+  }, [chainId, address]);
+
+  // Fetch and set user information when connected
+  useEffect(() => {
     const fetchUserInfo = async () => {
       setIsLoadingUserInfo(true);
       setUserInfoError(null);
 
       try {
         const userInfo = await getUserInfo();
-        setUserInfo(userInfo); // Store user info in state
+        console.log(userInfo);
+        setUserInfo(userInfo);
       } catch (error) {
         setUserInfoError(
           "Error fetching user info: The current wallet is not a particle wallet."
@@ -75,29 +92,16 @@ export default function Home() {
     };
 
     if (isConnected) {
-      fetchUserInfo(); // Fetch user info when the user is connected
+      fetchUserInfo();
     }
   }, [isConnected, getUserInfo]);
 
-  // Load the active account and fetch the balance
-  useEffect(() => {
-    async function loadAccount() {
-      if (address) {
-        setAccount(account);
-        setUserAddress(address);
-        await fetchBalance();
-      }
-    }
-    loadAccount();
-  }, [chainId, address]); // Trigger useEffect when chainId or address changes
-
-  // Fetch the user's balance in Ether
+  // Fetch user's balance and format it for display
   const fetchBalance = async () => {
     try {
-      if (!address) return; // Ensure address is defined
+      if (!address) return;
       const balanceResponse = await publicClient?.getBalance({ address });
-
-      const balanceInEther = formatEther(balanceResponse!); // Use formatEther from 'viem'
+      const balanceInEther = formatEther(balanceResponse!);
       console.log(balanceResponse);
       const fixedBalance = formatBalance(balanceInEther);
       setBalance(fixedBalance);
@@ -106,7 +110,7 @@ export default function Home() {
     }
   };
 
-  // Handle user disconnect
+  // Handle user disconnect action
   const handleDisconnect = async () => {
     try {
       await disconnectAsync();
@@ -115,27 +119,61 @@ export default function Home() {
     }
   };
 
+  // Send transaction using ethers.js with a custom EIP-1193 provider
   const executeTxEthers = async () => {
+    const tx = {
+      to: recipientAddress,
+      value: parseEther("0.01"), // Set value to 0.01 Ether
+      data: "0x", // No data, as there is no contract interaction
+    };
+
+    setIsSending(true);
+
     try {
-      // Prepare the transaction object
+      const EOAprovider = await primaryWallet.connector.getProvider();
+      const customProvider = new ethers.BrowserProvider(
+        EOAprovider as Eip1193Provider,
+        "any"
+      );
+
+      const signer = await customProvider.getSigner();
+      const txResponse = await signer.sendTransaction(tx);
+      const txReceipt = await txResponse.wait();
+
+      if (txReceipt) {
+        setTransactionHash(txReceipt.hash);
+      } else {
+        console.error("Transaction receipt is null");
+      }
+    } catch (error) {
+      console.error("Error executing EVM transaction:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Send transaction using the native Particle provider
+  const executeTxNative = async () => {
+    try {
       const tx = {
         to: recipientAddress,
-        value: parseEther("0.01"), // Convert Ether to Wei
-        data: "0x", // No contract interaction, so data is empty
-        chainId: primaryWallet.chainId, // Use the current chainId
-        account: primaryWallet.accounts[0], // Use the first account
+        value: parseEther("0.01"), // Set value to 0.01 Ether
+        data: "0x", // No data, as there is no contract interaction
+        chainId: primaryWallet.chainId, // Current chainId
+        account: primaryWallet.accounts[0], // Primary account
       };
 
       setIsSending(true);
-      // Get the wallet client and send the transaction
+
       const walletClient = primaryWallet.getWalletClient();
       const transactionResponse = await walletClient.sendTransaction(tx);
 
       setTransactionHash(transactionResponse);
-      setIsSending(false);
       console.log("Transaction sent:", transactionResponse);
     } catch (error) {
       console.error("Failed to send transaction:", error);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -221,18 +259,20 @@ export default function Home() {
                   />
                   <button
                     className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                    onClick={executeTxNative}
+                    disabled={!recipientAddress || isSending}
+                  >
+                    {isSending ? "Sending..." : `Send 0.01 Particle provider`}
+                  </button>
+                  <button
+                    className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
                     onClick={executeTxEthers}
                     disabled={!recipientAddress || isSending}
                   >
-                    {isSending ? "Sending..." : `Send 0.01`}
+                    {isSending ? "Sending..." : `Send 0.01 with ethers`}
                   </button>
-                  {/* You can use chainInfo.blockExplorerUrl to always link the correct block explorer dynamically*/}
-                  {transactionHash && (
-                    <TxNotification
-                      hash={transactionHash}
-                      blockExplorerUrl={"chainInfo.blockExplorerUrl"}
-                    />
-                  )}
+                  {/* Display transaction notification with the hash */}
+                  {transactionHash && <TxNotification hash={transactionHash} />}
                 </div>
               </div>
             </div>

@@ -177,6 +177,19 @@ export default function Home() {
     }
   };
 
+  // Parameters for the on-ramp URL
+  const fiatCoin = "USD";
+  const cryptoCoin = "ETH";
+  const network = "Ethereum";
+  const theme = "dark";
+  const language = "en";
+
+  // Function to handle the on-ramp button click
+  const handleOnRamp = () => {
+    const onRampUrl = `https://ramp.particle.network/?fiatCoin=${fiatCoin}&cryptoCoin=${cryptoCoin}&network=${network}&theme=${theme}&language=${language}`;
+    window.open(onRampUrl, "_blank");
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-between p-8 bg-black text-white">
       <Header />
@@ -234,7 +247,12 @@ export default function Home() {
                       🔄
                     </button>
                   </h2>
-
+                  <button
+                    className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                    onClick={handleOnRamp}
+                  >
+                    Buy Crypto with Fiat
+                  </button>
                   <div>
                     <button
                       className="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"

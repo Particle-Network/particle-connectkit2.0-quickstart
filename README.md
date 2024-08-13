@@ -35,7 +35,7 @@ Particle Connect provides a unified mechanism for facilitating dApp connections 
 
 ### Clone this repository
 ```
-git clone 
+git clone https://github.com/Particle-Network/particle-connectkit2.0-quickstart.git
 ```
 
 ### Move into the app directory
@@ -226,7 +226,7 @@ To get started with Particle Connect  from scracth in your application, follow t
 
 Below is a list of available social logins that you can configure:
 
-```json
+```js
 {
   email: 'email',
   phone: 'phone',

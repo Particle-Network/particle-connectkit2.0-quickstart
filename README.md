@@ -23,10 +23,6 @@ Built using:
 
 > Find the [Particle Connect SDK docs](https://developers.particle.network/api-reference/connect/desktop/web).
 
-## 🔑 Particle Connect
-
-Particle Connect provides a unified mechanism for facilitating dApp connections through both Web2 (via Particle Auth) and Web3 (using WalletConnect, Solana’s wallet-adapter, and private key imports) logins. This approach significantly reduces the entry barriers for decentralized applications, offering tailored onboarding paths that cater to a wide range of users, from Web3 natives to traditional Web2 consumers.
-
 ***
 
 👉 Learn more about [Particle Network](https://particle.network).
@@ -73,9 +69,9 @@ Or
 yarn dev
 ```
 
-## Build with Particle Connect
+## Build with Particle Connect (from scratch)
 
-To get started with Particle Connect  from scracth in your application, follow these steps:
+To get started with Particle Connect in your application, follow these steps:
 
 ### 🛠 Configuration & Integration
 
@@ -165,11 +161,9 @@ To get started with Particle Connect  from scracth in your application, follow t
    };
    ```
 
-  Then, wrap your application with the `ParticleConnectkit` component to enable various customizations. 
-
 3. **Wrap Your App**:
 
-   Import and wrap your application with the `ParticleConnectKit` component in your `index` or `layout` file. Here’s an example for a `layout.tsx` file:
+   Import and wrap your application with the `ParticleConnectKit` component (export of `ConnectKitProvider`) in your `index` or `layout` file. Here’s an example for a `layout.tsx` file:
 
    ```tsx
    import type { Metadata } from "next";
@@ -197,7 +191,7 @@ To get started with Particle Connect  from scracth in your application, follow t
 
 4. **Add a Connection Button**:
 
-   Include the **Connect** button in your main `App` component to allow users to log in via Particle Connect. Use `isConnected` from `useAccount()` to manage the display of account information. 
+   Include the **Connect** button in your main `App` component to allow users to log in via Particle Connect.
 
    Example integration:
 
@@ -221,27 +215,6 @@ To get started with Particle Connect  from scracth in your application, follow t
        );
    };
    ```
-
-### 🌐 Configure Social Logins
-
-Below is a list of available social logins that you can configure:
-
-```js
-{
-  email: 'email',
-  phone: 'phone',
-  facebook: 'facebook',
-  google: 'google',
-  apple: 'apple',
-  twitter: 'twitter',
-  discord: 'discord',
-  github: 'github',
-  twitch: 'twitch',
-  microsoft: 'microsoft',
-  linkedin: 'linkedin',
-  jwt: 'jwt'
-}
-```
 
 ## Particle Connect features
 

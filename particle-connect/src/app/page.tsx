@@ -99,7 +99,6 @@ export default function Home() {
           const userInfo = getUserInfo();
           setUserInfo(userInfo);
           console.log("userInfo ", userInfo);
-          console.log("social login");
         } catch (error) {
           console.log("getUserInfo error: ", error);
         } finally {

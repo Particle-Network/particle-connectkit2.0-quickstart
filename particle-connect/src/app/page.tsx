@@ -18,6 +18,7 @@ import {
   usePublicClient,
   useParticleAuth,
   useWallets,
+  useModal,
 } from "@particle-network/connectkit";
 
 // Connectkit uses Viem, so Viem's features can be utilized
@@ -28,8 +29,16 @@ import { ethers, type Eip1193Provider } from "ethers";
 
 export default function Home() {
   // Initialize account-related states from Particle's useAccount hook
-  const { address, isConnected, isConnecting, isDisconnected, chainId } =
-    useAccount();
+  const {
+    address,
+    isConnected,
+    isConnecting,
+    isDisconnected,
+    chainId,
+    connector,
+    status,
+    chain,
+  } = useAccount();
   const { disconnect, disconnectAsync } = useDisconnect();
   const { getUserInfo } = useParticleAuth();
 
@@ -59,6 +68,14 @@ export default function Home() {
     ? "Disconnected"
     : "Unknown";
 
+  // Integrate useModal to control the modal's visibility
+  const { isOpen, setOpen } = useModal({});
+
+  // Function to open the modal
+  const handleOpenModal = () => {
+    setOpen(true);
+  };
+
   // Load account details and fetch balance when address or chainId changes
   useEffect(() => {
     async function loadAccount() {
@@ -77,24 +94,26 @@ export default function Home() {
       setIsLoadingUserInfo(true);
       setUserInfoError(null);
 
-      try {
-        const userInfo = await getUserInfo();
-        console.log(userInfo);
-        setUserInfo(userInfo);
-      } catch (error) {
-        setUserInfoError(
-          "Error fetching user info: The current wallet is not a particle wallet."
-        );
-        console.error("Error fetching user info:", error);
-      } finally {
-        setIsLoadingUserInfo(false);
+      if (primaryWallet?.connector?.walletConnectorType === "particleAuth") {
+        try {
+          const userInfo = getUserInfo();
+          setUserInfo(userInfo);
+          console.log("userInfo ", userInfo);
+          console.log("social login");
+        } catch (error) {
+          console.log("getUserInfo error: ", error);
+        } finally {
+          setIsLoadingUserInfo(false);
+        }
+      } else {
+        setIsLoadingUserInfo(false); // Ensure to stop loading if connector type doesn't match
       }
     };
 
-    if (isConnected) {
+    if (status === "connected") {
       fetchUserInfo();
     }
-  }, [isConnected, getUserInfo]);
+  }, [status, primaryWallet, getUserInfo]); // Added connector and getUserInfo to the dependency array
 
   // Fetch user's balance and format it for display
   const fetchBalance = async () => {
@@ -206,6 +225,7 @@ export default function Home() {
             <div className="flex justify-center w-full">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
                 <div className="border border-purple-500 p-6 rounded-lg">
+                  <ConnectButton />
                   {isLoadingUserInfo ? (
                     <div>Loading user info...</div>
                   ) : userInfoError ? (
@@ -235,8 +255,14 @@ export default function Home() {
                       📋
                     </button>
                   </h2>
+                  {userInfo && userInfo.email && isConnected && (
+                    <h2 className="text-lg font-semibold text-white mr-2">
+                      Email: {userInfo.email || "N/A"}
+                    </h2>
+                  )}
+
                   <h2 className="text-lg font-semibold mb-2 text-white">
-                    Chain ID: <code>{chainId}</code>
+                    Chain: <code>{chain?.name || "Loading..."}</code>
                   </h2>
                   <h2 className="text-lg font-semibold mb-2 text-white flex items-center">
                     Balance: {balance !== "" ? balance : "Loading..."}
@@ -253,6 +279,14 @@ export default function Home() {
                   >
                     Buy Crypto with Fiat
                   </button>
+                  <div>
+                    <button
+                      className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                      onClick={handleOpenModal}
+                    >
+                      Open Wallet modal
+                    </button>
+                  </div>
                   <div>
                     <button
                       className="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
@@ -290,13 +324,20 @@ export default function Home() {
                     {isSending ? "Sending..." : `Send 0.01 with ethers`}
                   </button>
                   {/* Display transaction notification with the hash */}
-                  {transactionHash && <TxNotification hash={transactionHash} />}
+                  {transactionHash && (
+                    <TxNotification
+                      hash={transactionHash}
+                      blockExplorerUrl={
+                        chain?.blockExplorers?.default.url || ""
+                      }
+                    />
+                  )}
                 </div>
               </div>
             </div>
           </>
         ) : (
-          <ConnectButton />
+          <ConnectButton label="Login" />
         )}
         <LinksGrid />
       </main>

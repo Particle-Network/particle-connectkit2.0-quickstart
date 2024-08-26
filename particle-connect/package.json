@@ -9,10 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@particle-network/authkit": "^2.0.0-alpha.1",
-    "@particle-network/connectkit": "^2.0.0-alpha.1",
+    "@particle-network/auth-core": "^2.0.2",
+    "@particle-network/authkit": "^2.0.2",
+    "@particle-network/connectkit": "^2.0.3",
     "ethers": "^6.13.2",
+    "i": "^0.3.7",
     "next": "14.2.5",
+    "npm": "^10.8.2",
     "pino-pretty": "^11.2.2",
     "react": "^18",
     "react-dom": "^18",
